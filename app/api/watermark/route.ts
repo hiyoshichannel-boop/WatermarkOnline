@@ -15,6 +15,10 @@ function hexToRgba(hex: string, opacity: number) {
   return `rgba(${r},${g},${b},${opacity})`;
 }
 
+function clamp(v: number, min: number, max: number) {
+  return Math.min(Math.max(v, min), max);
+}
+
 function getPosition(
   pos: string,
   imgW: number,
@@ -23,7 +27,6 @@ function getPosition(
   markH: number
 ) {
   const pad = 20;
-
   switch (pos) {
     case "top-left":
       return { x: pad, y: pad };
@@ -57,8 +60,9 @@ export async function POST(req: Request) {
     const opacity = Number(form.get("opacity") || 0.4);
     const color = (form.get("color") as string) || "#ffffff";
     const repeat = form.get("repeat") === "true";
+    const wmScale = Number(form.get("wmScale") || 1); // 🔥 resize watermark
 
-    // ===== load base image =====
+    // ===== base image =====
     const baseBuffer = Buffer.from(await imageFile.arrayBuffer());
     const base = sharp(baseBuffer);
     const meta = await base.metadata();
@@ -76,12 +80,20 @@ export async function POST(req: Request) {
       );
       const font = await opentype.load(fontPath);
 
-      const fontSize = Math.floor(imgW / 12);
+      const baseFontSize = imgW / 12;
+      const fontSize = clamp(
+        Math.floor(baseFontSize * wmScale),
+        14,
+        imgW / 2
+      );
+
       const textWidth = font.getAdvanceWidth(text, fontSize);
       const textHeight = fontSize * 1.4;
 
-      const textPath = font.getPath(text, 0, 0, fontSize);
-      const pathData = textPath.toPathData(2);
+      const pathData = font
+        .getPath(text, 0, 0, fontSize)
+        .toPathData(2);
+
       const fill = hexToRgba(color, opacity);
 
       const svgText = `
@@ -123,7 +135,13 @@ export async function POST(req: Request) {
     if (iconFile) {
       const iconBuffer = Buffer.from(await iconFile.arrayBuffer());
 
-      const iconSize = Math.floor(imgW / 6); // kích thước icon
+      const baseIconSize = imgW / 6;
+      const iconSize = clamp(
+        Math.floor(baseIconSize * wmScale),
+        24,
+        imgW / 2
+      );
+
       const icon = await sharp(iconBuffer)
         .resize({ width: iconSize })
         .png()
@@ -131,8 +149,8 @@ export async function POST(req: Request) {
           {
             input: Buffer.from(
               `<svg width="${iconSize}" height="${iconSize}">
-                 <rect width="100%" height="100%" fill="rgba(255,255,255,${opacity})"/>
-               </svg>`
+                <rect width="100%" height="100%" fill="rgba(255,255,255,${opacity})"/>
+              </svg>`
             ),
             blend: "dest-in",
           },

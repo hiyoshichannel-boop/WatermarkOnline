@@ -9,11 +9,12 @@ export default function Home() {
   const [image, setImage] = useState<File | null>(null);
   const [icon, setIcon] = useState<File | null>(null);
 
-  const [text, setText] = useState("© Nội Dung Watermark");
+  const [text, setText] = useState("© Nội dung");
   const [position, setPosition] = useState("center");
   const [opacity, setOpacity] = useState(0.4);
   const [color, setColor] = useState("#ffffff");
   const [repeat, setRepeat] = useState(false);
+  const [wmScale, setWmScale] = useState(1); // 🔥 resize watermark
 
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ export default function Home() {
     f.append("opacity", String(opacity));
     f.append("color", color);
     f.append("repeat", String(repeat));
+    f.append("wmScale", String(wmScale));
     if (icon) f.append("icon", icon);
 
     try {
@@ -65,10 +67,10 @@ export default function Home() {
           Watermark Pro
         </h1>
 
-        {/* IMAGE UPLOAD */}
+        {/* IMAGE */}
         <div
           onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed rounded-lg p-5 text-center cursor-pointer hover:bg-gray-50 transition"
+          className="border-2 border-dashed rounded-lg p-5 text-center cursor-pointer hover:bg-gray-50"
         >
           {image ? image.name : "Chọn ảnh gốc"}
           <input
@@ -82,10 +84,10 @@ export default function Home() {
           />
         </div>
 
-        {/* ICON UPLOAD */}
+        {/* ICON */}
         <div
           onClick={() => iconRef.current?.click()}
-          className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition"
+          className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50"
         >
           {icon ? icon.name : "Chọn icon watermark (PNG / SVG)"}
           <input
@@ -99,7 +101,6 @@ export default function Home() {
           />
         </div>
 
-        {/* TEXT */}
         <input
           className="border rounded p-2 w-full"
           value={text}
@@ -107,7 +108,6 @@ export default function Home() {
           placeholder="Nội dung watermark"
         />
 
-        {/* POSITION */}
         <select
           className="border rounded p-2 w-full"
           value={position}
@@ -136,7 +136,23 @@ export default function Home() {
           />
         </div>
 
-        {/* COLOR WITH LABEL */}
+        {/* SCALE */}
+        <div>
+          <label className="text-sm font-medium">
+            Kích thước watermark: {wmScale}x
+          </label>
+          <input
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.1"
+            value={wmScale}
+            onChange={(e) => setWmScale(+e.target.value)}
+            className="w-full"
+          />
+        </div>
+
+        {/* COLOR */}
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">
             Màu watermark
@@ -145,11 +161,10 @@ export default function Home() {
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="w-12 h-8 border rounded cursor-pointer"
+            className="w-12 h-8 border rounded"
           />
         </div>
 
-        {/* REPEAT */}
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -159,7 +174,6 @@ export default function Home() {
           Lặp watermark
         </label>
 
-        {/* BUTTON */}
         <button
           onClick={submit}
           disabled={loading}
@@ -167,22 +181,18 @@ export default function Home() {
         >
           {loading ? "Đang xử lý..." : "Tạo Watermark"}
         </button>
-
-        {/* ERROR */}
+          <div className="text-red-600 text-sm text-center">
+            Make by: Trí Nguyễn
+          </div>
         {error && (
           <div className="text-red-600 text-sm text-center">
             {error}
           </div>
         )}
 
-        {/* RESULT */}
         {result && (
           <div className="space-y-2">
-            <img
-              src={result}
-              alt="Result"
-              className="rounded w-full"
-            />
+            <img src={result} className="rounded w-full" />
             <a
               href={result}
               download="watermark.png"

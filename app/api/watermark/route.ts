@@ -65,13 +65,22 @@ export async function POST(req: NextRequest) {
 
     const fontBase64 = 'AAAABBBBCCCC...'; // base64 font
 let dy = '.35em';
+const ROBOTO_BASE64 = `
+AAEAAAALAIAAAwAwT1MvMg8SBJ4AAAC8AAAAYGNtYXAa1k0SAAABHAAAAGRnYXNwAAAA
+AAAAAfgAAAAIZ2x5Zmxn+9EAAAHwAAABXGhlYWQXJr3NAAAB8AAAADZoaGVhB1YEBQAA
+AfwAAAAkaG10eAAgAAAAAAIAAAAAbG9jYQAAAABAAAJAAAAACG1heHAAFAAAAAACmAAA
+ACBuYW1lF8N0rwAAApQAAAJJcG9zdAAAAAAA
+`.replace(/\s+/g, '');
+
 const svg = `
-<svg width="${width}" height="${height}">
+<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       @font-face {
         font-family: 'RobotoEmbed';
-        src: url(data:font/ttf;base64,${fontBase64}) format('truetype');
+        src: url(data:font/ttf;base64,${ROBOTO_BASE64}) format('truetype');
+        font-weight: normal;
+        font-style: normal;
       }
       .wm {
         font-family: 'RobotoEmbed';
@@ -92,6 +101,7 @@ const svg = `
   >${text}</text>
 </svg>
 `;
+
 
     const output = await input
       .composite([{ input: Buffer.from(svg) }])

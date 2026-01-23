@@ -1,7 +1,10 @@
 import { NextRequest } from 'next/server';
-import { createCanvas, loadImage } from 'canvas';
+import { createCanvas, loadImage, registerFont } from 'canvas';
 
-export const runtime = 'nodejs'; // cần cho canvas + serverless
+export const runtime = 'nodejs'; // cần cho serverless
+
+// 🔹 Register font trước khi vẽ
+registerFont('public/fonts/NotoSans-Regular.ttf', { family: 'NotoSans' });
 
 type Position =
   | 'center'
@@ -28,7 +31,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Convert File → Buffer
+    // File → Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
     const img = await loadImage(buffer);
 
@@ -39,18 +42,16 @@ export async function POST(req: NextRequest) {
     // Vẽ ảnh gốc
     ctx.drawImage(img, 0, 0);
 
-    // Set font
-    ctx.font = `${size}px Arial`; // Arial / DejaVu Sans / Liberation Sans đều OK trên Linux
+    // Cài đặt font
+    ctx.font = `${size}px NotoSans`; // dùng font Unicode đã register
     ctx.fillStyle = color;
     ctx.globalAlpha = opacity;
 
     // Tính vị trí watermark
     let x = img.width / 2;
     let y = img.height / 2;
-
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
     const padding = 20;
 
     switch (position) {
@@ -91,9 +92,10 @@ export async function POST(req: NextRequest) {
     // Xuất buffer PNG
     const outBuffer = canvas.toBuffer('image/png');
 
+    // Fix TypeScript: Buffer → Uint8Array
     return new Response(new Uint8Array(outBuffer), {
-  headers: { 'Content-Type': 'image/png' },
-});
+      headers: { 'Content-Type': 'image/png' },
+    });
   } catch (err: any) {
     console.error('Watermark error:', err);
     return new Response(JSON.stringify({ error: 'Failed to process image' }), {

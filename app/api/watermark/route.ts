@@ -8,7 +8,7 @@ export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được trê
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Nhúng font Unicode (NotoSans) từ thư mục public/fonts
+// Nhúng font Unicode (NotoSans) từ public/fonts
 registerFont(path.join(__dirname, '../../../public/fonts/NotoSans-Regular.ttf'), {
   family: 'NotoSans',
 });
@@ -32,24 +32,19 @@ export async function POST(req: Request) {
       });
     }
 
-    // Convert Blob sang Buffer
     const arrayBuffer = await imageFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Load ảnh gốc
     const img = await loadImage(buffer);
     const canvas = createCanvas(img.width, img.height);
     const ctx = canvas.getContext('2d');
 
-    // Vẽ ảnh gốc
     ctx.drawImage(img, 0, 0);
 
-    // Cài đặt font + màu + độ mờ
     ctx.font = `${size}px NotoSans`;
     ctx.fillStyle = color;
     ctx.globalAlpha = opacity;
 
-    // Tính vị trí watermark
     let x = img.width / 2;
     let y = img.height / 2;
     ctx.textAlign = 'center';
@@ -81,17 +76,13 @@ export async function POST(req: Request) {
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
         break;
-      case 'center':
       default:
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        break;
     }
 
-    // Vẽ watermark
     ctx.fillText(text, x, y);
 
-    // Xuất ảnh PNG
     const outBuffer = canvas.toBuffer('image/png');
 
     return new Response(new Uint8Array(outBuffer), {

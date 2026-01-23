@@ -4,7 +4,7 @@ import { useState } from "react";
 
 export default function Home() {
   const [image, setImage] = useState<File | null>(null);
-  const [text, setText] = useState("© My Watermark");
+  const [text, setText] = useState("© Bản quyền – Hiyoshi");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -12,6 +12,7 @@ export default function Home() {
     if (!image) return;
 
     setLoading(true);
+    setResult(null);
 
     const formData = new FormData();
     formData.append("image", image);
@@ -28,25 +29,25 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-xl shadow p-4 space-y-4">
         <h1 className="text-xl font-bold text-center">
-          Watermark Image Online
+          Chèn Watermark Ảnh Online
         </h1>
 
         <input
           type="file"
           accept="image/*"
-          className="w-full"
           onChange={(e) => setImage(e.target.files?.[0] || null)}
+          className="w-full"
         />
 
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          placeholder="Nhập watermark (tiếng Việt OK)"
           className="w-full border rounded p-2"
-          placeholder="Watermark text"
         />
 
         <button
@@ -54,15 +55,20 @@ export default function Home() {
           disabled={loading}
           className="w-full bg-black text-white py-2 rounded disabled:opacity-50"
         >
-          {loading ? "Processing..." : "Add Watermark"}
+          {loading ? "Đang xử lý..." : "Chèn Watermark"}
         </button>
 
         {result && (
-          <img
-            src={result}
-            alt="Result"
-            className="w-full rounded"
-          />
+          <div className="space-y-2">
+            <img src={result} alt="Result" className="w-full rounded" />
+            <a
+              href={result}
+              download="watermark.png"
+              className="block text-center bg-green-600 text-white py-2 rounded"
+            >
+              Tải ảnh xuống
+            </a>
+          </div>
         )}
       </div>
     </main>

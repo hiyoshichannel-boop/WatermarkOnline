@@ -1,16 +1,24 @@
 import { NextRequest } from 'next/server';
-import sharp from 'sharp';
+import { createCanvas, loadImage } from 'canvas';
 
-export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được sharp trên Vercel
+export const runtime = 'nodejs'; // cần cho canvas + serverless
+
+type Position =
+  | 'center'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right';
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get('image');
+
+    const file = formData.get('image') as File;
     const text = (formData.get('text') as string) || '© Watermark';
-    const position = (formData.get('position') as string) || 'center';
-    const color = (formData.get('color') as string) || '#ffffff';
-    const opacity = parseFloat((formData.get('opacity') as string) || '0.7');
+    const position = (formData.get('position') as string) as Position || 'center';
+    const color = (formData.get('color') as string) || '#f35151';
+    const opacity = parseFloat((formData.get('opacity') as string) || '0.5');
     const size = parseInt((formData.get('size') as string) || '48', 10);
 
     if (!(file instanceof File)) {
@@ -20,98 +28,72 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Convert File → Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
-    const input = sharp(buffer);
-    const meta = await input.metadata();
-    const width = meta.width || 800;
-    const height = meta.height || 600;
+    const img = await loadImage(buffer);
+
+    // Tạo canvas cùng kích thước ảnh
+    const canvas = createCanvas(img.width, img.height);
+    const ctx = canvas.getContext('2d');
+
+    // Vẽ ảnh gốc
+    ctx.drawImage(img, 0, 0);
+
+    // Set font
+    ctx.font = `${size}px Arial`; // Arial / DejaVu Sans / Liberation Sans đều OK trên Linux
+    ctx.fillStyle = color;
+    ctx.globalAlpha = opacity;
 
     // Tính vị trí watermark
-    let x = width / 2;
-    let y = height / 2;
-    let anchor = 'middle';
-    let baseline = 'middle';
+    let x = img.width / 2;
+    let y = img.height / 2;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
     const padding = 20;
 
     switch (position) {
       case 'top-left':
         x = padding;
-        y = padding + size;
-        anchor = 'start';
-        baseline = 'hanging';
+        y = padding + size / 2;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
         break;
       case 'top-right':
-        x = width - padding;
-        y = padding + size;
-        anchor = 'end';
-        baseline = 'hanging';
+        x = img.width - padding;
+        y = padding + size / 2;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
         break;
       case 'bottom-left':
         x = padding;
-        y = height - padding;
-        anchor = 'start';
-        baseline = 'baseline';
+        y = img.height - padding;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
         break;
       case 'bottom-right':
-        x = width - padding;
-        y = height - padding;
-        anchor = 'end';
-        baseline = 'baseline';
+        x = img.width - padding;
+        y = img.height - padding;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
         break;
+      case 'center':
       default:
-        anchor = 'middle';
-        baseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        break;
     }
 
-    const fontBase64 = 'AAAABBBBCCCC...'; // base64 font
-let dy = '.35em';
-const ROBOTO_BASE64 = `
-AAEAAAALAIAAAwAwT1MvMg8SBJ4AAAC8AAAAYGNtYXAa1k0SAAABHAAAAGRnYXNwAAAA
-AAAAAfgAAAAIZ2x5Zmxn+9EAAAHwAAABXGhlYWQXJr3NAAAB8AAAADZoaGVhB1YEBQAA
-AfwAAAAkaG10eAAgAAAAAAIAAAAAbG9jYQAAAABAAAJAAAAACG1heHAAFAAAAAACmAAA
-ACBuYW1lF8N0rwAAApQAAAJJcG9zdAAAAAAA
-`.replace(/\s+/g, '');
+    // Vẽ watermark
+    ctx.fillText(text, x, y);
 
-const svg = `
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>
-      @font-face {
-        font-family: 'RobotoEmbed';
-        src: url(data:font/ttf;base64,${ROBOTO_BASE64}) format('truetype');
-        font-weight: normal;
-        font-style: normal;
-      }
-      .wm {
-        font-family: 'RobotoEmbed';
-        font-size: ${size}px;
-        fill: ${color};
-        fill-opacity: ${opacity};
-      }
-    </style>
-  </defs>
+    // Xuất buffer PNG
+    const outBuffer = canvas.toBuffer('image/png');
 
-  <text
-    x="${x}"
-    y="${y}"
-    dy="${dy}"
-    text-anchor="${anchor}"
-    dominant-baseline="${baseline}"
-    class="wm"
-  >${text}</text>
-</svg>
-`;
-
-
-    const output = await input
-      .composite([{ input: Buffer.from(svg) }])
-      .png()
-      .toBuffer();
-
-    return new Response(new Uint8Array(output), {
+    return new Response(new Uint8Array(outBuffer), {
   headers: { 'Content-Type': 'image/png' },
 });
-
   } catch (err: any) {
     console.error('Watermark error:', err);
     return new Response(JSON.stringify({ error: 'Failed to process image' }), {

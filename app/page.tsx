@@ -64,7 +64,7 @@ export default function Home() {
     <main className="min-h-screen bg-gray-100 flex justify-center p-4">
       <div className="w-full max-w-md bg-white p-5 rounded-xl shadow space-y-4">
         <h1 className="text-xl font-bold text-center">
-          Watermark Pro
+          Watermark Pro - Free Watermark Online 
         </h1>
 
         {/* IMAGE */}

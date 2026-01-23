@@ -63,7 +63,6 @@ export default function Home() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Upload ảnh */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">📁 Chọn ảnh</label>
             <input
@@ -74,7 +73,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Nội dung watermark */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">✍️ Nội dung watermark</label>
             <input
@@ -86,7 +84,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Vị trí watermark */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">📍 Vị trí watermark</label>
             <select
@@ -102,7 +99,6 @@ export default function Home() {
             </select>
           </div>
 
-          {/* Màu và opacity */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block font-semibold text-gray-700 mb-1">🎨 Màu watermark</label>
@@ -127,7 +123,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Kích thước chữ */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">🔠 Kích thước chữ (px)</label>
             <input
@@ -140,7 +135,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
@@ -152,7 +146,6 @@ export default function Home() {
           {error && <p className="text-red-600 font-medium">{error}</p>}
         </form>
 
-        {/* Hiển thị ảnh */}
         <div className="mt-10 grid gap-6">
           {file && (
             <div>

@@ -1,21 +1,22 @@
+import { NextRequest } from 'next/server';
 import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được trên Vercel
+export const runtime = 'nodejs';
 
 // Fix __dirname trong ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Nhúng font Unicode (NotoSans) từ public/fonts
+// Nhúng font Unicode
 registerFont(path.join(__dirname, '../../../public/fonts/NotoSans-Regular.ttf'), {
   family: 'NotoSans',
 });
 
 type Position = 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const imageFile = formData.get('image');

@@ -1,106 +1,61 @@
-import { NextRequest } from 'next/server';
-import { createCanvas, loadImage, registerFont } from 'canvas';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { NextResponse } from "next/server";
+import sharp from "sharp";
 
-export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được trên Vercel
+export const runtime = "nodejs"; // BẮT BUỘC cho sharp
 
-// Fix __dirname trong ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Nhúng font Unicode (NotoSans) từ thư mục public/fonts
-registerFont(path.join(__dirname, '../../../public/fonts/NotoSans-Regular.ttf'), {
-  family: 'NotoSans',
-});
-
-type Position = 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const imageFile = formData.get('image');
-    const text = (formData.get('text') as string) || '© Watermark';
-    const position = (formData.get('position') as string) as Position || 'center';
-    const color = (formData.get('color') as string) || '#f35151';
-    const opacity = parseFloat((formData.get('opacity') as string) || '0.5');
-    const size = parseInt((formData.get('size') as string) || '48', 10);
 
-    if (!imageFile || !(imageFile instanceof Blob)) {
-      return new Response(JSON.stringify({ error: 'No image uploaded' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const file = formData.get("image") as File;
+    const text = (formData.get("text") as string) || "© Watermark";
+
+    if (!file) {
+      return NextResponse.json({ error: "No image" }, { status: 400 });
     }
 
-    // Convert Blob sang Buffer
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const imageBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Load ảnh gốc
-    const img = await loadImage(buffer);
-    const canvas = createCanvas(img.width, img.height);
-    const ctx = canvas.getContext('2d');
+    const image = sharp(imageBuffer);
+    const metadata = await image.metadata();
 
-    // Vẽ ảnh gốc
-    ctx.drawImage(img, 0, 0);
+    const width = metadata.width || 800;
+    const height = metadata.height || 600;
 
-    // Cài đặt font + màu + độ mờ
-    ctx.font = `${size}px NotoSans`;
-    ctx.fillStyle = color;
-    ctx.globalAlpha = opacity;
+    // SVG TEXT – KHÔNG CẦN FONT FILE
+    const svg = `
+      <svg width="${width}" height="${height}">
+        <text
+          x="50%"
+          y="50%"
+          dominant-baseline="middle"
+          text-anchor="middle"
+          fill="rgba(255,255,255,0.4)"
+          font-size="${Math.floor(width / 15)}"
+          font-family="sans-serif"
+        >
+          ${text}
+        </text>
+      </svg>
+    `;
 
-    // Tính vị trí watermark
-    let x = img.width / 2;
-    let y = img.height / 2;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const padding = 20;
+    const output = await image
+      .composite([
+        {
+          input: Buffer.from(svg),
+          gravity: "center",
+        },
+      ])
+      .png()
+      .toBuffer();
 
-    switch (position) {
-      case 'top-left':
-        x = padding;
-        y = padding + size / 2;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        break;
-      case 'top-right':
-        x = img.width - padding;
-        y = padding + size / 2;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'top';
-        break;
-      case 'bottom-left':
-        x = padding;
-        y = img.height - padding;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'bottom';
-        break;
-      case 'bottom-right':
-        x = img.width - padding;
-        y = img.height - padding;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        break;
-      default:
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-    }
-
-    // Vẽ watermark
-    ctx.fillText(text, x, y);
-
-    // Xuất ảnh PNG
-    const outBuffer = canvas.toBuffer('image/png');
-
-    return new Response(new Uint8Array(outBuffer), {
-      headers: { 'Content-Type': 'image/png' },
+    return new NextResponse(output, {
+      headers: {
+        "Content-Type": "image/png",
+      },
     });
-  } catch (err: any) {
-    console.error('Watermark error:', err);
-    return new Response(JSON.stringify({ error: 'Failed to process image' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

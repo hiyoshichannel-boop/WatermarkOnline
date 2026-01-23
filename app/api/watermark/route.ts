@@ -2,13 +2,13 @@ import { createCanvas, loadImage, registerFont } from 'canvas';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được canvas trên Vercel
+export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được trên Vercel
 
 // Fix __dirname trong ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Nhúng font Unicode (NotoSans)
+// Nhúng font Unicode (NotoSans) từ thư mục public/fonts
 registerFont(path.join(__dirname, '../../../public/fonts/NotoSans-Regular.ttf'), {
   family: 'NotoSans',
 });

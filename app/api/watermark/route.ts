@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
-import fs from "fs";
 import path from "path";
 import opentype from "opentype.js";
 
 export const runtime = "nodejs";
 
-// convert hex → rgba
+// ===== utils =====
 function hexToRgba(hex: string, opacity: number) {
   const h = hex.replace("#", "");
   const bigint = parseInt(h, 16);
@@ -16,7 +15,6 @@ function hexToRgba(hex: string, opacity: number) {
   return `rgba(${r},${g},${b},${opacity})`;
 }
 
-// tính vị trí watermark
 function getPosition(
   pos: string,
   imgW: number,
@@ -24,18 +22,22 @@ function getPosition(
   markW: number,
   markH: number
 ) {
-  const padding = 20;
+  const pad = 20;
+
   switch (pos) {
     case "top-left":
-      return { x: padding, y: padding + markH };
+      return { x: pad, y: pad };
     case "top-right":
-      return { x: imgW - markW - padding, y: padding + markH };
+      return { x: imgW - markW - pad, y: pad };
     case "bottom-left":
-      return { x: padding, y: imgH - padding };
+      return { x: pad, y: imgH - markH - pad };
     case "bottom-right":
-      return { x: imgW - markW - padding, y: imgH - padding };
+      return { x: imgW - markW - pad, y: imgH - markH - pad };
     default:
-      return { x: (imgW - markW) / 2, y: imgH / 2 };
+      return {
+        x: (imgW - markW) / 2,
+        y: (imgH - markH) / 2,
+      };
   }
 }
 
@@ -43,93 +45,127 @@ export async function POST(req: Request) {
   try {
     const form = await req.formData();
 
-    const file = form.get("image") as File;
-    if (!file) {
+    const imageFile = form.get("image") as File;
+    if (!imageFile) {
       return NextResponse.json({ error: "No image" }, { status: 400 });
     }
 
-    const text = (form.get("text") as string) || "© Bản quyền Huế";
+    const text = (form.get("text") as string) || "";
+    const iconFile = form.get("icon") as File | null;
+
     const position = (form.get("position") as string) || "center";
     const opacity = Number(form.get("opacity") || 0.4);
     const color = (form.get("color") as string) || "#ffffff";
-    const rotate = Number(form.get("rotate") || 0);
-    const scale = Number(form.get("scale") || 1);
     const repeat = form.get("repeat") === "true";
 
-    // ===== đọc ảnh =====
-    const imageBuffer = Buffer.from(await file.arrayBuffer());
-    let image = sharp(imageBuffer);
+    // ===== load base image =====
+    const baseBuffer = Buffer.from(await imageFile.arrayBuffer());
+    const base = sharp(baseBuffer);
+    const meta = await base.metadata();
 
-    const meta = await image.metadata();
-    const width = meta.width || 800;
-    const height = meta.height || 600;
-
-    // ===== load font =====
-    const fontPath = path.join(
-      process.cwd(),
-      "public/fonts/NotoSans-Regular.ttf"
-    );
-    const fontBuffer = fs.readFileSync(fontPath);
-    const font = opentype.parse(fontBuffer.buffer);
-
-    const fontSize = Math.floor((width / 12) * scale);
-
-    // 🔥 TÍNH ĐỘ DÀI CHỮ – FIX CẮT CHỮ
-    const textWidth = font.getAdvanceWidth(text, fontSize);
-
-    // tạo path tại (0,0)
-    const textPath = font.getPath(text, 0, 0, fontSize);
-    const pathData = textPath.toPathData(2);
-
-    const fill = hexToRgba(color, opacity);
-
-    // 🔥 SVG VIEWPORT ĐÚNG – KHÔNG BỊ CLIP
-    const svgText = `
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  width="${textWidth}"
-  height="${fontSize * 1.4}"
-  viewBox="0 ${-fontSize} ${textWidth} ${fontSize * 1.4}"
->
-  <path
-    d="${pathData}"
-    fill="${fill}"
-    transform="rotate(${rotate})"
-  />
-</svg>
-`;
+    const imgW = meta.width || 800;
+    const imgH = meta.height || 600;
 
     const overlays: sharp.OverlayOptions[] = [];
 
-    if (repeat) {
-      // ===== repeat watermark =====
-      for (let y = 0; y < height; y += fontSize * 3) {
-        for (let x = 0; x < width; x += textWidth + 40) {
-          overlays.push({
-            input: Buffer.from(svgText),
-            left: x,
-            top: y,
-          });
-        }
-      }
-    } else {
-      // ===== single watermark =====
-      const pos = getPosition(
-        position,
-        width,
-        height,
-        textWidth,
-        fontSize
+    // ================= TEXT WATERMARK =================
+    if (text.trim()) {
+      const fontPath = path.join(
+        process.cwd(),
+        "public/fonts/NotoSans-Regular.ttf"
       );
+      const font = await opentype.load(fontPath);
 
-      overlays.push({
-        input: Buffer.from(svgText),
-        left: Math.max(0, pos.x),
-        top: Math.max(0, pos.y),
-      });
+      const fontSize = Math.floor(imgW / 12);
+      const textWidth = font.getAdvanceWidth(text, fontSize);
+      const textHeight = fontSize * 1.4;
+
+      const textPath = font.getPath(text, 0, 0, fontSize);
+      const pathData = textPath.toPathData(2);
+      const fill = hexToRgba(color, opacity);
+
+      const svgText = `
+<svg xmlns="http://www.w3.org/2000/svg"
+  width="${textWidth}"
+  height="${textHeight}"
+  viewBox="0 ${-fontSize} ${textWidth} ${textHeight}">
+  <path d="${pathData}" fill="${fill}" />
+</svg>
+`;
+
+      if (repeat) {
+        for (let y = 0; y < imgH; y += textHeight * 2) {
+          for (let x = 0; x < imgW; x += textWidth + 40) {
+            overlays.push({
+              input: Buffer.from(svgText),
+              left: Math.round(x),
+              top: Math.round(y),
+            });
+          }
+        }
+      } else {
+        const pos = getPosition(
+          position,
+          imgW,
+          imgH,
+          textWidth,
+          textHeight
+        );
+        overlays.push({
+          input: Buffer.from(svgText),
+          left: Math.round(pos.x),
+          top: Math.round(pos.y),
+        });
+      }
     }
 
-    const output = await image
+    // ================= ICON WATERMARK =================
+    if (iconFile) {
+      const iconBuffer = Buffer.from(await iconFile.arrayBuffer());
+
+      const iconSize = Math.floor(imgW / 6); // kích thước icon
+      const icon = await sharp(iconBuffer)
+        .resize({ width: iconSize })
+        .png()
+        .composite([
+          {
+            input: Buffer.from(
+              `<svg width="${iconSize}" height="${iconSize}">
+                 <rect width="100%" height="100%" fill="rgba(255,255,255,${opacity})"/>
+               </svg>`
+            ),
+            blend: "dest-in",
+          },
+        ])
+        .toBuffer();
+
+      if (repeat) {
+        for (let y = 0; y < imgH; y += iconSize * 1.8) {
+          for (let x = 0; x < imgW; x += iconSize * 1.8) {
+            overlays.push({
+              input: icon,
+              left: Math.round(x),
+              top: Math.round(y),
+            });
+          }
+        }
+      } else {
+        const pos = getPosition(
+          position,
+          imgW,
+          imgH,
+          iconSize,
+          iconSize
+        );
+        overlays.push({
+          input: icon,
+          left: Math.round(pos.x),
+          top: Math.round(pos.y),
+        });
+      }
+    }
+
+    const output = await base
       .composite(overlays)
       .png({ quality: 90 })
       .toBuffer();
@@ -138,7 +174,7 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "image/png" },
     });
   } catch (err) {
-    console.error(err);
+    console.error("WATERMARK API ERROR:", err);
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }

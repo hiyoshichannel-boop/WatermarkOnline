@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import sharp from 'sharp';
-export const runtime = 'nodejs';
+
+export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được sharp trên Vercel
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +14,10 @@ export async function POST(req: NextRequest) {
     const size = parseInt((formData.get('size') as string) || '48', 10);
 
     if (!(file instanceof File)) {
-      return Response.json({ error: 'No image uploaded' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'No image uploaded' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -59,22 +63,35 @@ export async function POST(req: NextRequest) {
         baseline = 'middle';
     }
 
-    const svg = `
-      <svg width="${width}" height="${height}">
-        <style>
-          .wm {
-            font-family: sans-serif;
-            font-size: ${size}px;
-            fill: ${color};
-            fill-opacity: ${opacity};
-            stroke: black;
-            stroke-width: ${Math.max(1, Math.floor(size/18))};
-            stroke-opacity: ${opacity};
-          }
-        </style>
-        <text x="${x}" y="${y}" text-anchor="${anchor}" dominant-baseline="${baseline}" class="wm">${text}</text>
-      </svg>
-    `;
+    const fontBase64 = 'AAAABBBBCCCC...'; // base64 font
+let dy = '.35em';
+const svg = `
+<svg width="${width}" height="${height}">
+  <defs>
+    <style>
+      @font-face {
+        font-family: 'RobotoEmbed';
+        src: url(data:font/ttf;base64,${fontBase64}) format('truetype');
+      }
+      .wm {
+        font-family: 'RobotoEmbed';
+        font-size: ${size}px;
+        fill: ${color};
+        fill-opacity: ${opacity};
+      }
+    </style>
+  </defs>
+
+  <text
+    x="${x}"
+    y="${y}"
+    dy="${dy}"
+    text-anchor="${anchor}"
+    dominant-baseline="${baseline}"
+    class="wm"
+  >${text}</text>
+</svg>
+`;
 
     const output = await input
       .composite([{ input: Buffer.from(svg) }])
@@ -85,8 +102,11 @@ export async function POST(req: NextRequest) {
   headers: { 'Content-Type': 'image/png' },
 });
 
-  } catch (err) {
-    console.error(err);
-    return Response.json({ error: 'Failed to process image' }, { status: 500 });
+  } catch (err: any) {
+    console.error('Watermark error:', err);
+    return new Response(JSON.stringify({ error: 'Failed to process image' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

@@ -9,7 +9,7 @@ export default function Home() {
   const [image, setImage] = useState<File | null>(null);
   const [icon, setIcon] = useState<File | null>(null);
 
-  const [text, setText] = useState("© Bản quyền Huế");
+  const [text, setText] = useState("© Nội Dung Watermark");
   const [position, setPosition] = useState("center");
   const [opacity, setOpacity] = useState(0.4);
   const [color, setColor] = useState("#ffffff");

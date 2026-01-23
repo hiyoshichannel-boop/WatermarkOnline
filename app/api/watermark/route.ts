@@ -1,93 +1,100 @@
-import { NextRequest } from 'next/server';
-import sharp from 'sharp';
+import { createCanvas, loadImage, registerFont } from 'canvas';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-export const runtime = 'nodejs'; // 👈 Bắt buộc để sharp chạy trên Vercel
+export const runtime = 'nodejs'; // 👈 Bắt buộc để chạy được canvas trên Vercel
+
+// Fix __dirname trong ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Nhúng font Unicode (NotoSans)
+registerFont(path.join(__dirname, '../../../public/fonts/NotoSans-Regular.ttf'), {
+  family: 'NotoSans',
+});
 
 type Position = 'center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const file = formData.get('image');
+    const imageFile = formData.get('image');
     const text = (formData.get('text') as string) || '© Watermark';
     const position = (formData.get('position') as string) as Position || 'center';
     const color = (formData.get('color') as string) || '#f35151';
     const opacity = parseFloat((formData.get('opacity') as string) || '0.5');
     const size = parseInt((formData.get('size') as string) || '48', 10);
 
-    if (!(file instanceof File)) {
+    if (!imageFile || !(imageFile instanceof Blob)) {
       return new Response(JSON.stringify({ error: 'No image uploaded' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const input = sharp(buffer);
-    const meta = await input.metadata();
-    const width = meta.width || 800;
-    const height = meta.height || 600;
+    // Convert Blob sang Buffer
+    const arrayBuffer = await imageFile.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Load ảnh gốc
+    const img = await loadImage(buffer);
+    const canvas = createCanvas(img.width, img.height);
+    const ctx = canvas.getContext('2d');
+
+    // Vẽ ảnh gốc
+    ctx.drawImage(img, 0, 0);
+
+    // Cài đặt font + màu + độ mờ
+    ctx.font = `${size}px NotoSans`;
+    ctx.fillStyle = color;
+    ctx.globalAlpha = opacity;
 
     // Tính vị trí watermark
-    let x = width / 2;
-    let y = height / 2;
-    let anchor = 'middle';
-    let baseline = 'middle';
+    let x = img.width / 2;
+    let y = img.height / 2;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     const padding = 20;
 
     switch (position) {
       case 'top-left':
         x = padding;
-        y = padding + size;
-        anchor = 'start';
-        baseline = 'hanging';
+        y = padding + size / 2;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
         break;
       case 'top-right':
-        x = width - padding;
-        y = padding + size;
-        anchor = 'end';
-        baseline = 'hanging';
+        x = img.width - padding;
+        y = padding + size / 2;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
         break;
       case 'bottom-left':
         x = padding;
-        y = height - padding;
-        anchor = 'start';
-        baseline = 'baseline';
+        y = img.height - padding;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
         break;
       case 'bottom-right':
-        x = width - padding;
-        y = height - padding;
-        anchor = 'end';
-        baseline = 'baseline';
+        x = img.width - padding;
+        y = img.height - padding;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
         break;
+      case 'center':
       default:
-        anchor = 'middle';
-        baseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        break;
     }
 
-    const svg = `
-      <svg width="${width}" height="${height}">
-        <style>
-          .wm {
-            font-family: sans-serif;
-            font-size: ${size}px;
-            fill: ${color};
-            fill-opacity: ${opacity};
-            stroke: black;
-            stroke-width: ${Math.max(1, Math.floor(size / 18))};
-            stroke-opacity: ${opacity};
-          }
-        </style>
-        <text x="${x}" y="${y}" text-anchor="${anchor}" dominant-baseline="${baseline}" class="wm">${text}</text>
-      </svg>
-    `;
+    // Vẽ watermark
+    ctx.fillText(text, x, y);
 
-    const outputBuffer = await input
-      .composite([{ input: Buffer.from(svg) }])
-      .png()
-      .toBuffer();
+    // Xuất ảnh PNG
+    const outBuffer = canvas.toBuffer('image/png');
 
-    return new Response(new Uint8Array(outputBuffer), {
+    return new Response(new Uint8Array(outBuffer), {
       headers: { 'Content-Type': 'image/png' },
     });
   } catch (err: any) {

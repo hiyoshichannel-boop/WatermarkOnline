@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
 
-export const runtime = "nodejs"; // BẮT BUỘC cho sharp
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +22,6 @@ export async function POST(req: Request) {
     const width = metadata.width || 800;
     const height = metadata.height || 600;
 
-    // SVG TEXT – KHÔNG CẦN FONT FILE
     const svg = `
       <svg width="${width}" height="${height}">
         <text
@@ -40,22 +39,21 @@ export async function POST(req: Request) {
     `;
 
     const output = await image
-      .composite([
-        {
-          input: Buffer.from(svg),
-          gravity: "center",
-        },
-      ])
+      .composite([{ input: Buffer.from(svg), gravity: "center" }])
       .png()
       .toBuffer();
 
-    return new NextResponse(output, {
+    // ✅ FIX QUAN TRỌNG
+    return new NextResponse(new Uint8Array(output), {
       headers: {
         "Content-Type": "image/png",
       },
     });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

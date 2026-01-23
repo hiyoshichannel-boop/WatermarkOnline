@@ -81,9 +81,10 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    return new NextResponse(output, {
-      headers: { 'Content-Type': 'image/png' },
-    });
+    return new NextResponse(new Uint8Array(output), {
+  headers: { 'Content-Type': 'image/png' },
+});
+
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to process image' }, { status: 500 });

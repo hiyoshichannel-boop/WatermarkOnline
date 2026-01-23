@@ -1,11 +1,16 @@
 import { NextRequest } from 'next/server';
 import { createCanvas, loadImage, registerFont } from 'canvas';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Bắt buộc cho Vercel serverless
 export const runtime = 'nodejs';
 
-// 🔹 Register font Unicode
-registerFont(new URL('/public/fonts/NotoSans-Regular.ttf', import.meta.url).pathname, {
+// fix __dirname trong ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// register font từ public/fonts
+registerFont(path.join(__dirname, '../../../public/fonts/NotoSans-Regular.ttf'), {
   family: 'NotoSans',
 });
 
@@ -46,22 +51,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Load ảnh từ buffer
     const img = await loadImage(buffer);
 
-    // Tạo canvas cùng kích thước ảnh
     const canvas = createCanvas(img.width, img.height);
     const ctx = canvas.getContext('2d');
 
-    // Vẽ ảnh gốc
     ctx.drawImage(img, 0, 0);
 
-    // Cài đặt font
     ctx.font = `${size}px NotoSans`;
     ctx.fillStyle = color;
     ctx.globalAlpha = opacity;
 
-    // Tính vị trí watermark
     let x = img.width / 2;
     let y = img.height / 2;
     ctx.textAlign = 'center';
@@ -100,13 +100,10 @@ export async function POST(req: NextRequest) {
         break;
     }
 
-    // Vẽ watermark
     ctx.fillText(text, x, y);
 
-    // Xuất buffer PNG
     const outBuffer = canvas.toBuffer('image/png');
 
-    // Trả về client
     return new Response(new Uint8Array(outBuffer), {
       headers: { 'Content-Type': 'image/png' },
     });
@@ -120,7 +117,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 🔹 Bắt GET trả 405
 export async function GET() {
   return new Response(JSON.stringify({ error: 'Method GET not allowed' }), {
     status: 405,

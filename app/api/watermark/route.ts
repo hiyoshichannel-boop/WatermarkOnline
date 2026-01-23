@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createCanvas, loadImage, registerFont } from 'canvas';
 
-// Chạy Node.js runtime
+// Bắt buộc cho node-canvas serverless
 export const runtime = 'nodejs';
 
 // 🔹 Register font Unicode
@@ -16,7 +16,6 @@ type Position =
 
 export async function POST(req: NextRequest) {
   try {
-    // Lấy formData
     const formData = await req.formData();
 
     const file = formData.get('image') as File;
@@ -44,8 +43,8 @@ export async function POST(req: NextRequest) {
     // Vẽ ảnh gốc
     ctx.drawImage(img, 0, 0);
 
-    // Cài đặt font
-    ctx.font = `${size}px NotoSans`; // Unicode / tiếng Việt
+    // Cài đặt font Unicode
+    ctx.font = `${size}px NotoSans`;
     ctx.fillStyle = color;
     ctx.globalAlpha = opacity;
 
@@ -94,11 +93,10 @@ export async function POST(req: NextRequest) {
     // Xuất buffer PNG
     const outBuffer = canvas.toBuffer('image/png');
 
-    // Fix TypeScript: Buffer → Uint8Array
+    // TypeScript fix: Buffer → Uint8Array
     return new Response(new Uint8Array(outBuffer), {
       headers: { 'Content-Type': 'image/png' },
     });
-
   } catch (err: any) {
     console.error('Watermark error:', err);
     return new Response(JSON.stringify({ error: 'Failed to process image' }), {
@@ -108,7 +106,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 🔹 Optional: trả về 405 nếu GET request
+// 🔹 Bắt các request GET trả về 405
 export async function GET() {
   return new Response(JSON.stringify({ error: 'Method GET not allowed' }), {
     status: 405,

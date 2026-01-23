@@ -10,7 +10,7 @@ export default function Home() {
   const [position, setPosition] = useState<Position>('center');
   const [color, setColor] = useState('#f35151');
   const [opacity, setOpacity] = useState(0.5);
-  const [size, setSize] = useState(100);
+  const [size, setSize] = useState(48);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +26,7 @@ export default function Home() {
     }
 
     setLoading(true);
+
     try {
       const formData = new FormData();
       formData.append('image', file);
@@ -62,6 +63,7 @@ export default function Home() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Upload ảnh */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">📁 Chọn ảnh</label>
             <input
@@ -72,17 +74,19 @@ export default function Home() {
             />
           </div>
 
+          {/* Nội dung watermark */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">✍️ Nội dung watermark</label>
             <input
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500"
               placeholder="© My Watermark"
+              className="block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
+          {/* Vị trí watermark */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">📍 Vị trí watermark</label>
             <select
@@ -98,6 +102,7 @@ export default function Home() {
             </select>
           </div>
 
+          {/* Màu và opacity */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block font-semibold text-gray-700 mb-1">🎨 Màu watermark</label>
@@ -108,7 +113,6 @@ export default function Home() {
                 className="w-16 h-10 border rounded-md"
               />
             </div>
-
             <div>
               <label className="block font-semibold text-gray-700 mb-1">🌫️ Độ mờ (0–1)</label>
               <input
@@ -123,6 +127,7 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Kích thước chữ */}
           <div>
             <label className="block font-semibold text-gray-700 mb-1">🔠 Kích thước chữ (px)</label>
             <input
@@ -135,6 +140,7 @@ export default function Home() {
             />
           </div>
 
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
@@ -146,16 +152,16 @@ export default function Home() {
           {error && <p className="text-red-600 font-medium">{error}</p>}
         </form>
 
+        {/* Hiển thị ảnh */}
         <div className="mt-10 grid gap-6">
           {file && (
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-2">📷 Ảnh gốc</h2>
               <img
-  src={URL.createObjectURL(file)}
-  alt="original"
-  className="w-[600px] h-[500px] object-contain rounded-md border shadow-sm"
-/>
-
+                src={URL.createObjectURL(file)}
+                alt="original"
+                className="w-full max-w-[600px] h-auto object-contain rounded-md border shadow-sm"
+              />
             </div>
           )}
 
@@ -163,10 +169,10 @@ export default function Home() {
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-2">✅ Ảnh đã thêm watermark</h2>
               <img
-  src={resultUrl}
-  alt="watermarked"
-  className="w-[600px] h-[500px] object-contain rounded-md border shadow-sm"
-/>
+                src={resultUrl}
+                alt="watermarked"
+                className="w-full max-w-[600px] h-auto object-contain rounded-md border shadow-sm"
+              />
               <a
                 href={resultUrl}
                 download="watermarked.png"
@@ -176,9 +182,10 @@ export default function Home() {
               </a>
             </div>
           )}
-          <div className="text-center font-bold text-blue-600 ">
-  Made by: Trí Nguyễn
-</div>
+
+          <div className="text-center font-bold text-blue-600 mt-4">
+            Made by: Trí Nguyễn
+          </div>
         </div>
       </div>
     </main>

@@ -5,11 +5,11 @@ import { fileURLToPath } from 'url';
 
 export const runtime = 'nodejs';
 
-// fix __dirname trong ESM
+// Fix __dirname trong ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// register font từ public/fonts
+// Register font Unicode
 registerFont(path.join(__dirname, '../../../public/fonts/NotoSans-Regular.ttf'), {
   family: 'NotoSans',
 });
@@ -51,17 +51,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Load ảnh từ buffer
     const img = await loadImage(buffer);
 
+    // Tạo canvas cùng kích thước ảnh
     const canvas = createCanvas(img.width, img.height);
     const ctx = canvas.getContext('2d');
 
+    // Vẽ ảnh gốc
     ctx.drawImage(img, 0, 0);
 
+    // Cài đặt font và opacity
     ctx.font = `${size}px NotoSans`;
     ctx.fillStyle = color;
     ctx.globalAlpha = opacity;
 
+    // Tính vị trí watermark
     let x = img.width / 2;
     let y = img.height / 2;
     ctx.textAlign = 'center';
@@ -100,8 +105,10 @@ export async function POST(req: NextRequest) {
         break;
     }
 
+    // Vẽ watermark
     ctx.fillText(text, x, y);
 
+    // Xuất buffer PNG
     const outBuffer = canvas.toBuffer('image/png');
 
     return new Response(new Uint8Array(outBuffer), {
@@ -117,6 +124,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Bắt GET trả 405
 export async function GET() {
   return new Response(JSON.stringify({ error: 'Method GET not allowed' }), {
     status: 405,

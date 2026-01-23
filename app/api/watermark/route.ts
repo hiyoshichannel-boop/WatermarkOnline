@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const size = parseInt((formData.get('size') as string) || '48', 10);
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: 'No image uploaded' }, { status: 400 });
+      return Response.json({ error: 'No image uploaded' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       <svg width="${width}" height="${height}">
         <style>
           .wm {
-            font-family: Arial, sans-serif;
+            font-family: sans-serif;
             font-size: ${size}px;
             fill: ${color};
             fill-opacity: ${opacity};
@@ -81,12 +81,12 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    return new NextResponse(new Uint8Array(output), {
+    return new Response(new Uint8Array(output), {
   headers: { 'Content-Type': 'image/png' },
 });
 
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: 'Failed to process image' }, { status: 500 });
+    return Response.json({ error: 'Failed to process image' }, { status: 500 });
   }
 }

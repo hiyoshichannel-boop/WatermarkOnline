@@ -3,35 +3,37 @@
 import { useRef, useState } from "react";
 
 export default function Home() {
-  const fileRef = useRef<HTMLInputElement>(null);
+  const imagesRef = useRef<HTMLInputElement>(null);
   const iconRef = useRef<HTMLInputElement>(null);
 
-  const [image, setImage] = useState<File | null>(null);
+  const [images, setImages] = useState<File[]>([]);
   const [icon, setIcon] = useState<File | null>(null);
 
-  const [text, setText] = useState("© Nội dung");
+  const [text, setText] = useState("© WatermarkPro");
   const [position, setPosition] = useState("center");
   const [opacity, setOpacity] = useState(0.4);
   const [color, setColor] = useState("#ffffff");
   const [repeat, setRepeat] = useState(false);
-  const [wmScale, setWmScale] = useState(1); // 🔥 resize watermark
+  const [wmScale, setWmScale] = useState(1);
 
-  const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
-    if (!image) {
-      setError("Vui lòng chọn ảnh");
+    if (!images.length) {
+      setError("Vui lòng chọn ít nhất 1 ảnh");
       return;
     }
 
     setLoading(true);
     setError(null);
-    setResult(null);
 
     const f = new FormData();
-    f.append("image", image);
+
+    images.forEach((img) => {
+      f.append("images", img);
+    });
+
     f.append("text", text);
     f.append("position", position);
     f.append("opacity", String(opacity));
@@ -52,7 +54,15 @@ export default function Home() {
       }
 
       const blob = await res.blob();
-      setResult(URL.createObjectURL(blob));
+      const url = URL.createObjectURL(blob);
+
+      // tải file ZIP
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "watermarked-images.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (e: any) {
       setError(e.message || "Có lỗi xảy ra");
     } finally {
@@ -64,22 +74,25 @@ export default function Home() {
     <main className="min-h-screen bg-gray-100 flex justify-center p-4">
       <div className="w-full max-w-md bg-white p-5 rounded-xl shadow space-y-4">
         <h1 className="text-xl font-bold text-center">
-          Watermark Pro - Free Watermark Online 
+          WatermarkPro – Hàng loạt
         </h1>
 
-        {/* IMAGE */}
+        {/* MULTI IMAGE UPLOAD */}
         <div
-          onClick={() => fileRef.current?.click()}
+          onClick={() => imagesRef.current?.click()}
           className="border-2 border-dashed rounded-lg p-5 text-center cursor-pointer hover:bg-gray-50"
         >
-          {image ? image.name : "Chọn ảnh gốc"}
+          {images.length
+            ? `Đã chọn ${images.length} ảnh`
+            : "Chọn nhiều ảnh để watermark"}
           <input
-            ref={fileRef}
+            ref={imagesRef}
             hidden
             type="file"
             accept="image/*"
+            multiple
             onChange={(e) =>
-              setImage(e.target.files?.[0] || null)
+              setImages(Array.from(e.target.files || []))
             }
           />
         </div>
@@ -101,6 +114,7 @@ export default function Home() {
           />
         </div>
 
+        {/* TEXT */}
         <input
           className="border rounded p-2 w-full"
           value={text}
@@ -108,6 +122,7 @@ export default function Home() {
           placeholder="Nội dung watermark"
         />
 
+        {/* POSITION */}
         <select
           className="border rounded p-2 w-full"
           value={position}
@@ -165,6 +180,7 @@ export default function Home() {
           />
         </div>
 
+        {/* REPEAT */}
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -174,32 +190,20 @@ export default function Home() {
           Lặp watermark
         </label>
 
+        {/* SUBMIT */}
         <button
           onClick={submit}
           disabled={loading}
           className="w-full bg-black text-white py-2 rounded disabled:opacity-50"
         >
-          {loading ? "Đang xử lý..." : "Tạo Watermark"}
+          {loading
+            ? `Đang xử lý ${images.length} ảnh...`
+            : "Tạo Watermark & Tải ZIP"}
         </button>
-          <div className="text-red-600 text-sm text-center">
-            Make by: Trí Nguyễn
-          </div>
+
         {error && (
           <div className="text-red-600 text-sm text-center">
             {error}
-          </div>
-        )}
-
-        {result && (
-          <div className="space-y-2">
-            <img src={result} className="rounded w-full" />
-            <a
-              href={result}
-              download="watermark.png"
-              className="block text-center bg-green-600 text-white py-2 rounded"
-            >
-              Tải ảnh xuống
-            </a>
           </div>
         )}
       </div>

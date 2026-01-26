@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next"
 
+// ================= FONT =================
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -13,8 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ================= GA ID =================
+const GA_ID = "G-K866WSXRB3"; // 👉 có thể chuyển sang env nếu muốn
+
+// ================= METADATA =================
 export const metadata: Metadata = {
-   metadataBase: new URL("https://watermarkpro.io.vn"),
+  metadataBase: new URL("https://watermarkpro.io.vn"),
 
   title: {
     default: "WatermarkPro – Chèn Watermark Ảnh Online Miễn Phí",
@@ -63,7 +69,7 @@ export const metadata: Metadata = {
       "Công cụ chèn watermark ảnh online: chữ & icon, resize watermark, chọn vị trí, hỗ trợ tiếng Việt. Dùng miễn phí, không cần đăng ký.",
     images: [
       {
-        url: "/og-image.png", // 👉 bồ nên tạo ảnh này (1200x630)
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "WatermarkPro – Chèn Watermark Ảnh Online",
@@ -86,18 +92,41 @@ export const metadata: Metadata = {
   category: "technology",
 };
 
+// ================= ROOT LAYOUT =================
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="vi">
+      <head>
+        {/* ===== Google Analytics GA4 ===== */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
+      </head>
+
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+
+        {/* ===== Vercel Analytics (optional) ===== */}
+        <Analytics />
       </body>
     </html>
   );
 }
+

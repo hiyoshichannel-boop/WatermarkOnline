@@ -9,7 +9,7 @@ export default function Home() {
   const [images, setImages] = useState<File[]>([]);
   const [icon, setIcon] = useState<File | null>(null);
 
-  const [text, setText] = useState("© WatermarkPro");
+  const [text, setText] = useState("© nhập Watermark");
   const [position, setPosition] = useState("center");
   const [opacity, setOpacity] = useState(0.4);
   const [color, setColor] = useState("#ffffff");
@@ -20,8 +20,13 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
-    if (!images.length) {
-      setError("Vui lòng chọn ít nhất 1 ảnh");
+    if (images.length === 0) {
+      setError("Vui lòng chọn ảnh");
+      return;
+    }
+
+    if (images.length > 2) {
+      alert("Chỉ được upload tối đa 2 ảnh mỗi lần.");
       return;
     }
 
@@ -29,10 +34,7 @@ export default function Home() {
     setError(null);
 
     const f = new FormData();
-
-    images.forEach((img) => {
-      f.append("images", img);
-    });
+    images.forEach((img) => f.append("images", img));
 
     f.append("text", text);
     f.append("position", position);
@@ -56,7 +58,6 @@ export default function Home() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
 
-      // tải file ZIP
       const a = document.createElement("a");
       a.href = url;
       a.download = "watermarked-images.zip";
@@ -74,26 +75,32 @@ export default function Home() {
     <main className="min-h-screen bg-gray-100 flex justify-center p-4">
       <div className="w-full max-w-md bg-white p-5 rounded-xl shadow space-y-4">
         <h1 className="text-xl font-bold text-center">
-          WatermarkPro – Hàng loạt
+          WatermarkPro 
         </h1>
 
-        {/* MULTI IMAGE UPLOAD */}
+        {/* UPLOAD IMAGES */}
         <div
           onClick={() => imagesRef.current?.click()}
           className="border-2 border-dashed rounded-lg p-5 text-center cursor-pointer hover:bg-gray-50"
         >
           {images.length
             ? `Đã chọn ${images.length} ảnh`
-            : "Chọn nhiều ảnh để watermark"}
+            : "Chọn tối đa 2 ảnh"}
           <input
             ref={imagesRef}
             hidden
             type="file"
             accept="image/*"
             multiple
-            onChange={(e) =>
-              setImages(Array.from(e.target.files || []))
-            }
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              if (files.length > 2) {
+                alert("Chỉ được upload tối đa 2 ảnh mỗi lần.");
+                e.target.value = "";
+                return;
+              }
+              setImages(files);
+            }}
           />
         </div>
 
@@ -114,15 +121,12 @@ export default function Home() {
           />
         </div>
 
-        {/* TEXT */}
         <input
           className="border rounded p-2 w-full"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Nội dung watermark"
         />
 
-        {/* POSITION */}
         <select
           className="border rounded p-2 w-full"
           value={position}
@@ -135,53 +139,36 @@ export default function Home() {
           <option value="bottom-right">Bottom Right</option>
         </select>
 
-        {/* OPACITY */}
-        <div>
-          <label className="text-sm font-medium">
-            Độ mờ: {opacity}
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={opacity}
-            onChange={(e) => setOpacity(+e.target.value)}
-            className="w-full"
-          />
-        </div>
+        <label>Độ mờ: {opacity}</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={opacity}
+          onChange={(e) => setOpacity(+e.target.value)}
+        />
+<br/>
+        <label>Kích thước watermark: {wmScale}x</label>
+        <input
+          type="range"
+          min="0.5"
+          max="2"
+          step="0.1"
+          value={wmScale}
+          onChange={(e) => setWmScale(+e.target.value)}
+        />
 
-        {/* SCALE */}
-        <div>
-          <label className="text-sm font-medium">
-            Kích thước watermark: {wmScale}x
-          </label>
-          <input
-            type="range"
-            min="0.5"
-            max="2"
-            step="0.1"
-            value={wmScale}
-            onChange={(e) => setWmScale(+e.target.value)}
-            className="w-full"
-          />
-        </div>
-
-        {/* COLOR */}
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">
-            Màu watermark
-          </label>
+          <label>Màu watermark</label>
           <input
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="w-12 h-8 border rounded"
           />
         </div>
 
-        {/* REPEAT */}
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={repeat}
@@ -190,15 +177,12 @@ export default function Home() {
           Lặp watermark
         </label>
 
-        {/* SUBMIT */}
         <button
           onClick={submit}
           disabled={loading}
           className="w-full bg-black text-white py-2 rounded disabled:opacity-50"
         >
-          {loading
-            ? `Đang xử lý ${images.length} ảnh...`
-            : "Tạo Watermark & Tải ZIP"}
+          {loading ? "Đang xử lý..." : "Tạo Watermark "}
         </button>
 
         {error && (

@@ -62,7 +62,7 @@ async function watermarkOneImage(
 
   let base = sharp(imageBuffer);
 
-  // ⚡ giới hạn size cho mobile
+  // giới hạn size để chạy nhanh & tránh quá tải
   const metaRaw = await base.metadata();
   if (metaRaw.width && metaRaw.width > 2000) {
     base = base.resize({ width: 2000, withoutEnlargement: true });
@@ -74,7 +74,7 @@ async function watermarkOneImage(
 
   const overlays: sharp.OverlayOptions[] = [];
 
-  // ===== TEXT =====
+  // ===== TEXT WATERMARK =====
   if (text) {
     const fontSize = clamp(
       Math.floor((imgW / 12) * wmScale),
@@ -125,7 +125,7 @@ async function watermarkOneImage(
     }
   }
 
-  // ===== ICON =====
+  // ===== ICON WATERMARK =====
   if (iconBuffer) {
     const iconSize = clamp(
       Math.floor((imgW / 6) * wmScale),
@@ -174,6 +174,7 @@ async function watermarkOneImage(
     }
   }
 
+  // xuất WebP nhẹ, mobile-friendly
   return base.composite(overlays).webp({ quality: 85 }).toBuffer();
 }
 
@@ -182,8 +183,12 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const files = form.getAll("images") as File[];
 
-    if (!files.length) {
-      return NextResponse.json({ error: "No images" }, { status: 400 });
+    // 🔒 hard limit backend
+    if (files.length === 0 || files.length > 2) {
+      return NextResponse.json(
+        { error: "Chỉ cho phép tối đa 2 ảnh mỗi lần" },
+        { status: 400 }
+      );
     }
 
     const text = (form.get("text") as string) || "";
@@ -209,15 +214,19 @@ export async function POST(req: Request) {
     for (let i = 0; i < files.length; i++) {
       const buf = Buffer.from(await files[i].arrayBuffer());
 
-      const out = await watermarkOneImage(buf, {
-        text,
-        iconBuffer,
-        position,
-        opacity,
-        color,
-        repeat,
-        wmScale,
-      }, font);
+      const out = await watermarkOneImage(
+        buf,
+        {
+          text,
+          iconBuffer,
+          position,
+          opacity,
+          color,
+          repeat,
+          wmScale,
+        },
+        font
+      );
 
       zip.file(`watermark_${i + 1}.webp`, out);
     }
@@ -225,14 +234,17 @@ export async function POST(req: Request) {
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
     return new NextResponse(new Uint8Array(zipBuffer), {
-
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": "attachment; filename=watermarked-images.zip",
+        "Content-Disposition":
+          "attachment; filename=watermarked-images.zip",
       },
     });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("WATERMARK ERROR:", err);
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }

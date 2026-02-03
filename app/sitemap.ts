@@ -20,5 +20,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       priority: 0.6,
     },
+    {
+      url: "https://watermarkpro.io.vn/watermark-anh-khong-vo",
+      lastModified: now,
+      priority: 0.6,
+    },
   ];
 }

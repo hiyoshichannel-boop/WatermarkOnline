@@ -184,13 +184,42 @@ export default function Home() {
         >
           {loading ? "Đang xử lý..." : "Tạo Watermark "}
         </button>
+        <section className="text-sm text-gray-600 space-y-2">
+  
+  <p>
+    Ảnh được xử lý trực tiếp, không lưu trữ trên máy chủ,
+    đảm bảo an toàn và bảo mật tuyệt đối.
+  </p>
+</section>
+
 
         {error && (
           <div className="text-red-600 text-sm text-center">
             {error}
           </div>
         )}
+        <footer className="mt-8 border-t pt-4 text-sm text-gray-600">
+  <nav className="flex flex-col gap-3 items-center text-center">
+    <div className="flex gap-4">
+      <a  rel="nofollow">
+        Liên hệ: nvantri93@gmail.com
+      </a>
+      <span>|</span>
+      <a href="/privacy">
+        Privacy Policy
+      </a>
+    </div>
+
+    <p className="text-xs text-gray-500">
+      © {new Date().getFullYear()} WatermarkPro – Công cụ chèn watermark ảnh online
+    </p>
+  </nav>
+</footer>
       </div>
+      
+
     </main>
+    
   );
+  
 }

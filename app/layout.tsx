@@ -125,6 +125,26 @@ export default function RootLayout({
 
         {/* ===== Vercel Analytics (optional) ===== */}
         <Analytics />
+        <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "WatermarkPro",
+      operatingSystem: "Web",
+      applicationCategory: "MultimediaApplication",
+      description:
+        "Công cụ chèn watermark ảnh online miễn phí, không lưu ảnh.",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "VND",
+      },
+    }),
+  }}
+/>
+
       </body>
     </html>
   );

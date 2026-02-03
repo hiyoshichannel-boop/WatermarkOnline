@@ -201,8 +201,8 @@ export default function Home() {
         <footer className="mt-8 border-t pt-4 text-sm text-gray-600">
   <nav className="flex flex-col gap-3 items-center text-center">
     <div className="flex gap-4">
-      <a  rel="nofollow">
-        Liên hệ: nvantri93@gmail.com
+      <a href="/contact" rel="nofollow">
+        Liên hệ
       </a>
       <span>|</span>
       <a href="/privacy">
@@ -211,7 +211,10 @@ export default function Home() {
     </div>
 
     <p className="text-xs text-gray-500">
-      © {new Date().getFullYear()} WatermarkPro – Công cụ chèn watermark ảnh online
+      © {new Date().getFullYear()} WatermarkPro – Công cụ chèn watermark ảnh online 
+    </p>
+    <p className="text-xs text-gray-500">
+      Made by: TriNguyen
     </p>
   </nav>
 </footer>

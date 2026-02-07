@@ -4,6 +4,12 @@ import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
 // ================= FONT =================
 const geistSans = Geist({
   variable: "--font-geist-sans",

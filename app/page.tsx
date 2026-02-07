@@ -184,7 +184,7 @@ export default function Home() {
         >
           {loading ? "Đang xử lý..." : "Tạo Watermark "}
         </button>
-        <section className="text-sm text-gray-600 space-y-2">
+        <section className="text-base text-gray-600 space-y-2">
   
   <p>
     Ảnh được xử lý trực tiếp, không lưu trữ trên máy chủ,
@@ -194,11 +194,11 @@ export default function Home() {
 
 
         {error && (
-          <div className="text-red-600 text-sm text-center">
+          <div className="text-red-600 text-base text-center">
             {error}
           </div>
         )}
-        <footer className="mt-8 border-t pt-4 text-sm text-gray-600">
+        <footer className="mt-8 border-t pt-4 text-base text-gray-600">
   <nav className="flex flex-col gap-3 items-center text-center">
     <div className="flex gap-4">
       <a href="/contact" rel="nofollow">

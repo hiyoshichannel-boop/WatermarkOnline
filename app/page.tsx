@@ -133,10 +133,13 @@ export default function Home() {
           onChange={(e) => setPosition(e.target.value)}
         >
           <option value="center">Center</option>
-          <option value="top-left">Top Left</option>
-          <option value="top-right">Top Right</option>
-          <option value="bottom-left">Bottom Left</option>
-          <option value="bottom-right">Bottom Right</option>
+<option value="top-left">Top Left</option>
+<option value="top-center">Top Center</option>
+<option value="top-right">Top Right</option>
+<option value="bottom-left">Bottom Left</option>
+<option value="bottom-right">Bottom Right</option>
+
+<option value="bottom-center">Bottom Center</option>
         </select>
 
         <label>Độ mờ: {opacity}</label>

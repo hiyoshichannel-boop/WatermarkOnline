@@ -27,23 +27,46 @@ function getPosition(
   markW: number,
   markH: number
 ) {
-  const pad = 20;
+  const padX = 20;
+  const padTop = 20;
+  const padBottom = 5;
+
   switch (pos) {
     case "top-left":
-      return { x: pad, y: pad };
+      return { x: padX, y: padTop };
+
     case "top-right":
-      return { x: imgW - markW - pad, y: pad };
+      return { x: imgW - markW - padX, y: padTop };
+
     case "bottom-left":
-      return { x: pad, y: imgH - markH - pad };
+      return { x: padX, y: imgH - markH - padBottom };
+
     case "bottom-right":
-      return { x: imgW - markW - pad, y: imgH - markH - pad };
-    default:
+      return { x: imgW - markW - padX, y: imgH - markH - padBottom };
+
+    /* ===== MỚI ===== */
+
+    case "top-center":
       return {
-        x: (imgW - markW) / 2,
-        y: (imgH - markH) / 2,
+        x: imgW / 2 - markW / 2,
+        y: padTop,
+      };
+
+    case "bottom-center":
+      return {
+        x: imgW / 2 - markW / 2,
+        y: imgH - markH - padBottom,
+      };
+
+    default: // center
+      return {
+        x: imgW / 2 - markW / 2,
+        y: imgH / 2 - markH / 2,
       };
   }
 }
+
+
 
 async function watermarkOneImage(
   imageBuffer: Buffer,
@@ -60,123 +83,147 @@ async function watermarkOneImage(
     wmScale,
   } = options;
 
-  let base = sharp(imageBuffer);
+  /* =========================
+   * STEP 1: FIX CỨNG SIZE ẢNH
+   * ========================= */
+  const normalizedBuffer = await sharp(imageBuffer, {
+    failOnError: false,
+    limitInputPixels: false,
+  })
+    .rotate()
+    .toColorspace("srgb")
+    .resize({
+      width: 2000,
+      withoutEnlargement: true,
+    })
+    .toBuffer();
 
-  // giới hạn size để chạy nhanh & tránh quá tải
-  const metaRaw = await base.metadata();
-  if (metaRaw.width && metaRaw.width > 2000) {
-    base = base.resize({ width: 2000, withoutEnlargement: true });
-  }
-
+  /* =========================
+   * STEP 2: BASE + METADATA THẬT
+   * ========================= */
+  let base = sharp(normalizedBuffer);
   const meta = await base.metadata();
+
   const imgW = meta.width || 800;
   const imgH = meta.height || 600;
 
   const overlays: sharp.OverlayOptions[] = [];
 
-  // ===== TEXT WATERMARK =====
-  if (text) {
-    const fontSize = clamp(
-      Math.floor((imgW / 12) * wmScale),
-      14,
-      imgW / 2
-    );
+  /* =========================
+   * TEXT WATERMARK
+   * ========================= */
+ // ===== TEXT WATERMARK (FULL – SAFE – POSITION OK) =====
+if (text && text.trim()) {
+  const safeText = text.trim();
 
-    const textWidth = font.getAdvanceWidth(text, fontSize);
-    const textHeight = fontSize * 1.4;
+  // 1️⃣ Font size an toàn theo kích thước ảnh ĐÃ RESIZE
+  const fontSize = clamp(
+    Math.floor((imgW / 14) * wmScale),
+    16,
+    imgW * 0.2
+  );
 
-    const pathData = font
-      .getPath(text, 0, 0, fontSize)
-      .toPathData(2);
+  const fill = hexToRgba(color, opacity);
+  const baseline = fontSize * 1.3;
 
-    const fill = hexToRgba(color, opacity);
+  // 2️⃣ Tạo path chữ
+  const path = font.getPath(safeText, 0, baseline, fontSize);
+  const pathData = path.toPathData(1);
 
-    const svg = `
+  // Không có path hợp lệ thì bỏ watermark text
+  if (pathData.length > 10) {
+
+    // 3️⃣ SVG có viewBox (BẮT BUỘC)
+    const rawSvg = `
 <svg xmlns="http://www.w3.org/2000/svg"
-  width="${textWidth}" height="${textHeight}"
-  viewBox="0 ${-fontSize} ${textWidth} ${textHeight}">
+     viewBox="0 0 ${imgW} ${imgH}">
   <path d="${pathData}" fill="${fill}" />
 </svg>
 `;
 
-    if (repeat) {
-      for (let y = 0; y < imgH; y += textHeight * 2) {
-        for (let x = 0; x < imgW; x += textWidth + 40) {
-          overlays.push({
-            input: Buffer.from(svg),
-            left: Math.round(x),
-            top: Math.round(y),
-          });
-        }
-      }
+    // 4️⃣ ÉP SVG về kích thước an toàn bằng sharp
+   const svgBuffer = await sharp(Buffer.from(rawSvg), { density: 300 })
+  .resize({
+    width: Math.floor(imgW * 0.35),
+    height: Math.floor(imgH * 0.25),
+    fit: "inside",
+    withoutEnlargement: true,
+  })
+  .png()
+  .trim() // 🔥 CẮT HẾT VÙNG TRANSPARENT
+  .toBuffer();
+
+
+    // 5️⃣ Lấy kích thước THẬT của watermark
+    const wmMeta = await sharp(svgBuffer).metadata();
+    const wmW = wmMeta.width || 100;
+    const wmH = wmMeta.height || 50;
+
+    // 6️⃣ TÍNH VỊ TRÍ ĐÚNG (CENTER / 4 GÓC)
+    let left = 0;
+    let top = 0;
+
+    if (position === "center") {
+      left = Math.round(imgW / 2 - wmW / 2);
+      top = Math.round(imgH / 2 - wmH / 2);
     } else {
-      const pos = getPosition(
-        position,
-        imgW,
-        imgH,
-        textWidth,
-        textHeight
-      );
+      const pos = getPosition(position, imgW, imgH, wmW, wmH);
+      left = Math.round(pos.x);
+      top = Math.round(pos.y);
+    }
+
+    // 7️⃣ CHẶN CUỐI – KHÔNG CHO VƯỢT BIÊN (AN TOÀN TUYỆT ĐỐI)
+    if (
+      wmW <= imgW &&
+      wmH <= imgH &&
+      left >= 0 &&
+      top >= 0
+    ) {
       overlays.push({
-        input: Buffer.from(svg),
-        left: Math.round(pos.x),
-        top: Math.round(pos.y),
+        input: svgBuffer,
+        left,
+        top,
       });
     }
   }
+}
 
-  // ===== ICON WATERMARK =====
+
+  /* =========================
+   * ICON WATERMARK (CLAMP)
+   * ========================= */
   if (iconBuffer) {
-    const iconSize = clamp(
-      Math.floor((imgW / 6) * wmScale),
-      24,
-      imgW / 2
-    );
-
     const icon = await sharp(iconBuffer)
-      .resize({ width: iconSize })
+      .resize({
+        width: Math.floor(imgW * 0.2),
+        fit: "inside",
+        withoutEnlargement: true,
+      })
       .png()
-      .composite([
-        {
-          input: Buffer.from(
-            `<svg width="${iconSize}" height="${iconSize}">
-              <rect width="100%" height="100%" fill="rgba(255,255,255,${opacity})"/>
-            </svg>`
-          ),
-          blend: "dest-in",
-        },
-      ])
       .toBuffer();
 
-    if (repeat) {
-      for (let y = 0; y < imgH; y += iconSize * 1.8) {
-        for (let x = 0; x < imgW; x += iconSize * 1.8) {
-          overlays.push({
-            input: icon,
-            left: Math.round(x),
-            top: Math.round(y),
-          });
-        }
-      }
-    } else {
-      const pos = getPosition(
-        position,
-        imgW,
-        imgH,
-        iconSize,
-        iconSize
-      );
-      overlays.push({
-        input: icon,
-        left: Math.round(pos.x),
-        top: Math.round(pos.y),
-      });
-    }
+    const iconMeta = await sharp(icon).metadata();
+    const iconW = iconMeta.width || 50;
+    const iconH = iconMeta.height || 50;
+
+    const pos = getPosition(position, imgW, imgH, iconW, iconH);
+
+    overlays.push({
+      input: icon,
+      left: Math.round(pos.x),
+      top: Math.round(pos.y),
+    });
   }
 
-  // xuất WebP nhẹ, mobile-friendly
-  return base.composite(overlays).webp({ quality: 85 }).toBuffer();
+  /* =========================
+   * OUTPUT
+   * ========================= */
+  return await base
+    .composite(overlays)
+    .webp({ quality: 85 })
+    .toBuffer();
 }
+
 
 export async function POST(req: Request) {
   try {
@@ -240,11 +287,14 @@ export async function POST(req: Request) {
           "attachment; filename=watermarked-images.zip",
       },
     });
-  } catch (err) {
-    console.error("WATERMARK ERROR:", err);
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    );
-  }
+  } catch (err: any) {
+  console.error("===== WATERMARK ERROR =====");
+  console.error(err);
+  console.error(err?.stack);
+  return NextResponse.json(
+    { error: err?.message || "Server error" },
+    { status: 500 }
+  );
+}
+
 }

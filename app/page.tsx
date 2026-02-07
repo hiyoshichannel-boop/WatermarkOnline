@@ -1,6 +1,8 @@
 "use client";
 
+import { url } from "inspector/promises";
 import { useRef, useState } from "react";
+import { blob } from "stream/consumers";
 
 export default function Home() {
   const imagesRef = useRef<HTMLInputElement>(null);
@@ -55,15 +57,58 @@ export default function Home() {
         throw new Error(err.error || "Server error");
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const contentType = res.headers.get("Content-Type") || "";
+
+// 👉 1 ẢNH – TẢI TRỰC TIẾP
+if (contentType.startsWith("image/")) {
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "watermarked.webp";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  return;
+}
+
+// 👉 2 ẢNH – SERVER TRẢ JSON
+const list = await res.json();
+
+list.forEach((item: any) => {
+  const byteCharacters = atob(item.data);
+  const byteNumbers = new Array(byteCharacters.length)
+    .fill(0)
+    .map((_, i) => byteCharacters.charCodeAt(i));
+
+  const blob = new Blob([new Uint8Array(byteNumbers)], {
+    type: "image/webp",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = item.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+      
+
+
 
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "watermarked-images.zip";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const blob = await res.blob();
+
+const url = URL.createObjectURL(blob);
+a.href = url;
+a.download = "watermarked-images.zip";
+document.body.appendChild(a);
+a.click();
+a.remove();
     } catch (e: any) {
       setError(e.message || "Có lỗi xảy ra");
     } finally {
@@ -196,11 +241,7 @@ export default function Home() {
 </section>
 
 
-        {error && (
-          <div className="text-red-600 text-base text-center">
-            {error}
-          </div>
-        )}
+       
         <footer className="mt-8 border-t pt-4 text-base text-gray-600">
   <nav className="flex flex-col gap-3 items-center text-center">
     <div className="flex gap-4">

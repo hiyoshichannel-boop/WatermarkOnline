@@ -82,7 +82,14 @@ async function watermarkOneImage(
   })
     .rotate()
     .toColorspace("srgb")
-    .resize({ width: 2000, withoutEnlargement: true })
+    //.resize({ width: 2000, withoutEnlargement: true })
+    .resize({
+    width: 1600,
+    height: 1600,
+    fit: "inside", // 👈 quan trọng
+    withoutEnlargement: true,
+  })
+    .jpeg({ quality: 85 })
     .toBuffer();
 
   const base = sharp(normalizedBuffer);

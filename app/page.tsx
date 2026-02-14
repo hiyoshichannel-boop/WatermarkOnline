@@ -239,6 +239,12 @@ a.remove();
     đảm bảo an toàn và bảo mật tuyệt đối.
   </p>
 </section>
+<p className="text-sm text-gray-600 mt-4">
+Bạn cần chia sẻ ảnh có watermark bằng mã QR? 
+<a href="https://qrfree.io.vn" target="_blank" className="text-blue-600 underline">
+ Tạo QR Code miễn phí tại đây
+</a>
+</p>
 
 
        

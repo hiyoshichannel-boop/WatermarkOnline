@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy – WatermarkPro",
@@ -19,6 +20,15 @@ export default function PrivacyPage() {
       <p>
         Sau khi xử lý xong, dữ liệu sẽ được xoá tự động khỏi hệ thống.
       </p>
+      {/* Nút quay về trang chủ */}
+      <div className="pt-4">
+        <Link
+          href="/"
+          className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition"
+        >
+          ← Quay về trang chủ
+        </Link>
+      </div>
     </main>
   );
 }

@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://watermarkpro.io.vn"),
 
   title: {
-    default: "WatermarkPro – Chèn Watermark Ảnh Online Miễn Phí",
+    default: "Tạo Watermark online miễn phí | Watermarkpro",
     template: "%s | WatermarkPro",
   },
 
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     locale: "vi_VN",
     url: "https://watermarkpro.io.vn",
     siteName: "WatermarkPro",
-    title: "WatermarkPro – Chèn Watermark Ảnh Online Miễn Phí",
+    title: "Tạo Watermark online miễn phí",
     description:
       "Công cụ chèn watermark ảnh online: chữ & icon, resize watermark, chọn vị trí, hỗ trợ tiếng Việt. Dùng miễn phí, không cần đăng ký.",
     images: [
@@ -85,7 +85,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "WatermarkPro – Chèn Watermark Ảnh Online",
+    title: "Tạo Watermark online miễn phí | Watermarkpro",
     description:
       "Chèn watermark chữ hoặc logo vào ảnh online nhanh chóng. Hỗ trợ tiếng Việt, resize watermark, miễn phí.",
     images: ["/og-image.png"],

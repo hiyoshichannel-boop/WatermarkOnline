@@ -120,7 +120,7 @@ a.remove();
     <main className="min-h-screen bg-gray-100 flex justify-center p-4">
       <div className="w-full max-w-md bg-white p-5 rounded-xl shadow space-y-4">
         <h1 className="text-xl font-bold text-center">
-          WatermarkPro 
+          Tạo Watermark Online Miễn Phí 
         </h1>
 
         {/* UPLOAD IMAGES */}
